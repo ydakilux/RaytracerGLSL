@@ -1,6 +1,6 @@
 ﻿#version 430
 
-//#extension GL_ARB_compute_variable_group_size : enable
+#extension GL_ARB_compute_variable_group_size : enable
 
 //layout( local_size_variable ) in;
 layout( local_size_x = 10,
@@ -9,12 +9,12 @@ layout( local_size_x = 10,
 
 ////////////////////////////////////////////////////////////////////////////////
 
-const uvec3 _WorkGrupsN = gl_NumWorkGroups;
+const ivec3 _WorkGrupsN = ivec3( gl_NumWorkGroups );
 
-//const uvec3 _WorkItemsN = gl_LocalGroupSizeARB;
-const uvec3 _WorkItemsN = gl_WorkGroupSize;
+//const ivec3 _WorkItemsN = ivec3( gl_LocalGroupSizeARB );
+const ivec3 _WorkItemsN = ivec3( gl_WorkGroupSize );
 
-const uvec3 _WorksN = _WorkGrupsN * _WorkItemsN;
+const ivec3 _WorksN = _WorkGrupsN * _WorkItemsN;
 
 //############################################################################## ■
 
