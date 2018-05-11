@@ -3,18 +3,20 @@
 #extension GL_ARB_compute_variable_group_size : enable
 
 //layout( local_size_variable ) in;
-layout( local_size_x = 10,
-        local_size_y = 10,
-        local_size_z =  1 ) in;
+  layout( local_size_x = 10,
+          local_size_y = 10,
+          local_size_z =  1 ) in;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-const ivec3 _WorkGrupsN = ivec3( gl_NumWorkGroups );
+  const ivec3 _WorkGrupsN = ivec3( gl_NumWorkGroups );
 
 //const ivec3 _WorkItemsN = ivec3( gl_LocalGroupSizeARB );
-const ivec3 _WorkItemsN = ivec3( gl_WorkGroupSize );
+  const ivec3 _WorkItemsN = ivec3( gl_WorkGroupSize     );
 
-const ivec3 _WorksN = _WorkGrupsN * _WorkItemsN;
+  const ivec3 _WorksN     = _WorkGrupsN * _WorkItemsN;
+
+  const ivec3 _WorkID     = ivec3( gl_GlobalInvocationID );
 
 //############################################################################## ■
 
@@ -75,13 +77,11 @@ bool HitShpere( TRay Ray, inout THit Hit )
 
 void main()
 {
-  ivec2 I = ivec2( gl_GlobalInvocationID.xy );
-
   vec3 EyePos = vec3( 0, 0, 2 );
 
   vec3 ScreenPos;
-  ScreenPos.x = 2.0 * I.x / _WorksN.x - 1.0;
-  ScreenPos.y = 1.0 - 2.0 * I.y / _WorksN.y;
+  ScreenPos.x =       2.0 * _WorkID.x / _WorksN.x - 1.0;
+  ScreenPos.y = 1.0 - 2.0 * _WorkID.y / _WorksN.y;
   ScreenPos.z = 1.0;
 
   TRay Ray;
@@ -101,7 +101,7 @@ void main()
     C = vec4( 0, 0, 0, 1 );
   }
 
-  imageStore( _Imager, I, C );
+  imageStore( _Imager, _WorkID.xy, C );
 }
 
 //############################################################################## ■
