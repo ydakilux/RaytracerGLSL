@@ -81,17 +81,47 @@ bool HitShpere( TRay Ray, inout THit Hit )
     return true;
 }
 
-////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------
 
-vec2 VecToSky( vec3 Vector_ )
+vec2 VecToSky( vec3 Vec_ )
 {
     vec2 Result;
 
-    Result.x = ( Pi - atan( -Vector_.x, -Vector_.z ) ) / Pi2;
-    Result.y =        acos(  Vector_.y             )   / Pi ;
+    Result.x = ( Pi - atan( -Vec_.x, -Vec_.z ) ) / Pi2;
+    Result.y =        acos(  Vec_.y          )   / Pi ;
 
     return Result;
 }
+
+//------------------------------------------------------------------------------
+
+vec4 ToneMap( vec4 C_, float White_ )
+{
+  vec4 Result;
+
+  Result.rgb = clamp( C_.rgb * ( 1 + C_.rgb / White_ ) / ( 1 + C_.rgb ), 0, 1 );
+  Result.a   = C_.a;
+
+  return Result;
+}
+
+//------------------------------------------------------------------------------
+
+vec4 GammaCorrect( vec4 C_, float Gamma_ )
+{
+  vec4 Result;
+
+  float G = 1 / Gamma_;
+
+  Result.r = pow( C_.r, G );
+  Result.g = pow( C_.g, G );
+  Result.b = pow( C_.b, G );
+  Result.a =      C_.a     ;
+
+  return Result;
+}
+
+////////////////////////////////////////////////////////////////////////////////
 
 void main()
 {
@@ -114,6 +144,7 @@ void main()
   Hit.t = 10000;
 
   vec4 C;
+
   if ( HitShpere( Ray, Hit ) )
   {
     vec3 R = reflect( Ray.Vec.xyz, Hit.Nor );
@@ -125,11 +156,8 @@ void main()
     C = texture( _Textur, VecToSky( Ray.Vec.xyz ) );
   }
 
-  C.rgb = clamp( C.rgb * ( 1 + C.rgb / 100 ) / ( 1 + C.rgb ), 0, 1 );
-
-  C.r = pow( C.r, 1.0 / 2.2 );
-  C.g = pow( C.g, 1.0 / 2.2 );
-  C.b = pow( C.b, 1.0 / 2.2 );
+  C = ToneMap( C, 10 );
+  C = GammaCorrect( C, 2.2 );
 
   imageStore( _Imager, _WorkID.xy, C );
 }
