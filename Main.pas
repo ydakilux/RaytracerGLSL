@@ -47,7 +47,6 @@ type
     procedure InitBuffer;
     procedure InitTextur;
     procedure InitImager;
-    procedure Draw;
   end;
 
 var
@@ -95,27 +94,10 @@ begin
      _Textur.Imager.LoadFromFileHDR( '..\..\_DATA\Luxo-Jr_2000x1000.hdr' );
 end;
 
-procedure TForm1.Timer1Timer(Sender: TObject);
-begin
-     _Comput.Run;
-
-     _Imager.CopyTo( Image1.Bitmap );
-end;
-
 procedure TForm1.InitImager;
 begin
      _Imager.Grid.CellsX := _ImageW;
      _Imager.Grid.CellsY := _ImageH;
-end;
-
-//------------------------------------------------------------------------------
-
-procedure TForm1.Draw;
-begin
-     //_Comput.RunARB;
-     _Comput.Run;
-
-     _Imager.CopyTo( Image1.Bitmap );
 end;
 
 //&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
@@ -136,8 +118,6 @@ begin
      InitBuffer;
      InitTextur;
      InitImager;
-
-     Draw;
 end;
 
 procedure TForm1.FormDestroy(Sender: TObject);
@@ -149,6 +129,15 @@ begin
 end;
 
 ////////////////////////////////////////////////////////////////////////////////
+
+procedure TForm1.Timer1Timer(Sender: TObject);
+begin
+     _Comput.Run;
+
+     _Imager.CopyTo( Image1.Bitmap );
+end;
+
+//------------------------------------------------------------------------------
 
 procedure TForm1.Image1MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
 begin
