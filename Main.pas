@@ -22,17 +22,25 @@ uses
 type
   TForm1 = class(TForm)
     Image1: TImage;
+    Timer1: TTimer;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure Image1MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
+    procedure Image1MouseMove(Sender: TObject; Shift: TShiftState; X, Y: Single);
+    procedure Image1MouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
+    procedure Timer1Timer(Sender: TObject);
   private
     { private 宣言 }
+    _MouseS :TShiftState;
+    _MouseP :TSingle2D;
+    _MouseA :TSingle2D;
   public
     { public 宣言 }
     _ImageW :Integer;
     _ImageH :Integer;
     _Comput :TGLComput;
     _Buffer :TGLStoBuf<TSingleM4>;
-    _Textur :TGLPoiTex1D_TAlphaColorF;
+    _Textur :TGLCelTex2D_TAlphaColorF;
     _Imager :TGLCelIma2D_TAlphaColorF;
     ///// メソッド
     procedure InitComput;
@@ -84,17 +92,14 @@ end;
 
 procedure TForm1.InitTextur;
 begin
-     _Textur.Imager.Grid.PoinsX := 4;
+     _Textur.Imager.LoadFromFileHDR( '..\..\_DATA\Luxo-Jr_2000x1000.hdr' );
+end;
 
-     with _Textur.Imager.Grid.Map do
-     begin
-          Items[ 0 ] := TAlphaColorF.Create( 0, 0, 0 );
-          Items[ 1 ] := TAlphaColorF.Create( 0, 1, 0 );
-          Items[ 2 ] := TAlphaColorF.Create( 1, 1, 0 );
-          Items[ 3 ] := TAlphaColorF.Create( 1, 1, 1 );
+procedure TForm1.Timer1Timer(Sender: TObject);
+begin
+     _Comput.Run;
 
-          DisposeOf;
-     end;
+     _Imager.CopyTo( Image1.Bitmap );
 end;
 
 procedure TForm1.InitImager;
@@ -117,12 +122,14 @@ end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
+     Image1.AutoCapture := True;
+
      _Comput := TGLComput.Create;
      _Buffer := TGLStoBuf<TSingleM4>.Create( GL_STATIC_DRAW );
-     _Textur := TGLPoiTex1D_TAlphaColorF.Create;
+     _Textur := TGLCelTex2D_TAlphaColorF.Create;
      _Imager := TGLCelIma2D_TAlphaColorF.Create;
 
-     _ImageW := 600;
+     _ImageW := 800;
      _ImageH := 600;
 
      InitComput;
@@ -139,6 +146,38 @@ begin
      _Buffer.DisposeOf;
      _Textur.DisposeOf;
      _Imager.DisposeOf;
+end;
+
+////////////////////////////////////////////////////////////////////////////////
+
+procedure TForm1.Image1MouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
+begin
+     _MouseS := Shift;
+     _MouseP := TSingle2D.Create( X, Y );
+end;
+
+procedure TForm1.Image1MouseMove(Sender: TObject; Shift: TShiftState; X, Y: Single);
+var
+   P :TSingle2D;
+begin
+     if ssLeft in _MouseS then
+     begin
+          P := TSingle2D.Create( X, Y );
+
+          _MouseA := _MouseA + ( P - _MouseP );
+
+          _MouseP := P;
+
+          _Buffer[ 0 ] := TSingleM4.RotateX( DegToRad( _MouseA.Y ) )
+                        * TSingleM4.RotateY( DegToRad( _MouseA.X ) );
+     end;
+end;
+
+procedure TForm1.Image1MouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
+begin
+     Image1MouseMove( Sender, Shift, X, Y );
+
+     _MouseS := [];
 end;
 
 end. //######################################################################### ■
