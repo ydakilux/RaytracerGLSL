@@ -36,17 +36,12 @@ type
     _MouseA :TSingle2D;
   public
     { public 宣言 }
-    _ImageW :Integer;
-    _ImageH :Integer;
     _Comput :TGLComput;
-    _Buffer :TGLStoBuf<TSingleM4>;
-    _Textur :TGLCelTex2D_TAlphaColorF;
     _Imager :TGLCelIma2D_TAlphaColorF;
+    _Textur :TGLCelTex2D_TAlphaColorF;
+    _Buffer :TGLStoBuf<TSingleM4>;
     ///// メソッド
     procedure InitComput;
-    procedure InitBuffer;
-    procedure InitTextur;
-    procedure InitImager;
   end;
 
 var
@@ -70,9 +65,9 @@ begin
      _Comput.ItemsY := 10;
      _Comput.ItemsZ :=  1;
 
-     _Comput.WorksX := _ImageW;
-     _Comput.WorksY := _ImageH;
-     _Comput.WorksZ :=       1;
+     _Comput.WorksX := _Imager.Grid.CellsX;
+     _Comput.WorksY := _Imager.Grid.CellsY;
+     _Comput.WorksZ :=                   1;
 
      _Comput.ShaderC.Source.LoadFromFile( '..\..\_DATA\Comput.glsl' );
 
@@ -84,22 +79,6 @@ begin
      _Comput.Texturs.Add( '_Textur', _Textur );
 end;
 
-procedure TForm1.InitBuffer;
-begin
-     _Buffer[ 0 ] := TSingleM4.Translate( 0, 0, 0 );
-end;
-
-procedure TForm1.InitTextur;
-begin
-     _Textur.Imager.LoadFromFileHDR( '..\..\_DATA\Luxo-Jr_2000x1000.hdr' );
-end;
-
-procedure TForm1.InitImager;
-begin
-     _Imager.Grid.CellsX := _ImageW;
-     _Imager.Grid.CellsY := _ImageH;
-end;
-
 //&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
 procedure TForm1.FormCreate(Sender: TObject);
@@ -107,25 +86,26 @@ begin
      Image1.AutoCapture := True;
 
      _Comput := TGLComput.Create;
-     _Buffer := TGLStoBuf<TSingleM4>.Create( GL_STATIC_DRAW );
-     _Textur := TGLCelTex2D_TAlphaColorF.Create;
      _Imager := TGLCelIma2D_TAlphaColorF.Create;
+     _Textur := TGLCelTex2D_TAlphaColorF.Create;
+     _Buffer := TGLStoBuf<TSingleM4>.Create( GL_STATIC_DRAW );
 
-     _ImageW := 800;
-     _ImageH := 600;
+     _Imager.Grid.CellsX := 800;
+     _Imager.Grid.CellsY := 600;
 
      InitComput;
-     InitBuffer;
-     InitTextur;
-     InitImager;
+
+     _Textur.Imager.LoadFromFileHDR( '..\..\_DATA\Luxo-Jr_2000x1000.hdr' );
+
+     _Buffer[ 0 ] := TSingleM4.Identity;
 end;
 
 procedure TForm1.FormDestroy(Sender: TObject);
 begin
      _Comput.DisposeOf;
-     _Buffer.DisposeOf;
-     _Textur.DisposeOf;
      _Imager.DisposeOf;
+     _Textur.DisposeOf;
+     _Buffer.DisposeOf;
 end;
 
 ////////////////////////////////////////////////////////////////////////////////
