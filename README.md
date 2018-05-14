@@ -1,5 +1,5 @@
 ﻿# Raytracer_OpenGL
-OpenGL の Compute Shader を用いてレイトレーシング法を実装する方法。
+[OpenGL](https://ja.wikipedia.org/wiki/OpenGL) の [Compute Shader](https://www.khronos.org/opengl/wiki/Compute_Shader) を用いて[レイトレーシング](https://ja.wikipedia.org/wiki/レイトレーシング)法を実装する方法。
 
 ----
 
