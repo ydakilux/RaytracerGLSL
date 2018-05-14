@@ -64,15 +64,15 @@ bool HitShpere( TRay Ray, inout THit Hit )
 
     float C = dot( Ray.Pos.xyz, Ray.Pos.xyz ) - 1;
 
-    if ( C > 0.0f && B > 0.0f ) return false;
+    if ( ( C > 0 ) && ( B > 0 ) ) return false;
 
     float D = B * B - C;
 
-    if ( D < 0.0 ) return false;
+    if ( D < 0 ) return false;
 
     float t = -B - sqrt( D );
 
-    if ( t < 0.0 ) return false;
+    if ( t < 0 ) return false;
 
     Hit.t   = t;
     Hit.Pos = Ray.Pos.xyz + t * Ray.Vec.xyz;
