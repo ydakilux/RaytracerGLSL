@@ -1,4 +1,5 @@
-# Raytracer_OpenGL
+# RaytracerGLSL
+
 [OpenGL](https://ja.wikipedia.org/wiki/OpenGL) の [Compute Shader](https://www.khronos.org/opengl/wiki/Compute_Shader) を用いて[レイトレーシング](https://ja.wikipedia.org/wiki/レイトレーシング)法を実装する方法。
 
 ![](https://github.com/LUXOPHIA/Raytracer_OpenGL/raw/master/--------/_SCREENSHOT/RaytracerGLSL.png)
