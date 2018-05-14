@@ -1,4 +1,4 @@
-program Raytracer_OpenGL;
+program RaytracerGLSL;
 
 uses
   System.StartUpCopy,
