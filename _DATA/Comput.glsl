@@ -20,11 +20,49 @@
 
 //############################################################################## ■
 
-//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%【定数】
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【定数】
 
 const float Pi  = 3.141592653589793;
 const float Pi2 = Pi * 2.0;
 const float P2i = Pi / 2.0;
+
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【ルーチン】
+
+vec2 VecToSky( vec3 Vec_ )
+{
+    vec2 Result;
+
+    Result.x = ( Pi - atan( -Vec_.x, -Vec_.z ) ) / Pi2;
+    Result.y =        acos(  Vec_.y          )   / Pi ;
+
+    return Result;
+}
+
+//------------------------------------------------------------------------------
+
+vec3 ToneMap( vec3 C_, float White_ )
+{
+  vec3 Result;
+
+  Result = clamp( C_ * ( 1 + C_ / White_ ) / ( 1 + C_ ), 0, 1 );
+
+  return Result;
+}
+
+//------------------------------------------------------------------------------
+
+vec3 GammaCorrect( vec3 C_, float Gamma_ )
+{
+  vec3 Result;
+
+  float G = 1 / Gamma_;
+
+  Result.r = pow( C_.r, G );
+  Result.g = pow( C_.g, G );
+  Result.b = pow( C_.b, G );
+
+  return Result;
+}
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【外部変数】
 
@@ -45,6 +83,7 @@ struct TRay
 {
     vec4 Pos;
     vec4 Vec;
+    vec3 Col;
 };
 
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% THit
@@ -52,114 +91,119 @@ struct TRay
 struct THit
 {
     float t;
-    vec3  Pos;
-    vec3  Nor;
+    int   Mat;
+    vec4  Pos;
+    vec4  Nor;
 };
 
-////////////////////////////////////////////////////////////////////////////////
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【物体】
 
-bool HitShpere( TRay Ray, inout THit Hit )
+bool ObjPlane( TRay Ray, inout THit Hit )
 {
-    float B = dot( Ray.Pos.xyz, Ray.Vec.xyz );
+  if ( Ray.Vec.y < 0 )
+  {
+    float t = ( Ray.Pos.y - -2 ) / -Ray.Vec.y;
 
-    float C = dot( Ray.Pos.xyz, Ray.Pos.xyz ) - 1;
+    if ( ( 0 < t ) && ( t < Hit.t ) )
+    {
+      Hit.t   = t;
+      Hit.Pos = Ray.Pos + t * Ray.Vec;
+      Hit.Nor = vec4( 0, 1, 0, 1 );
 
-    if ( ( C > 0 ) && ( B > 0 ) ) return false;
+      return true;
+    }
+  }
+  return false;
+}
 
+//------------------------------------------------------------------------------
+
+bool ObjSpher( TRay Ray, inout THit Hit )
+{
+  float B = dot( Ray.Pos.xyz, Ray.Vec.xyz );
+
+  float C = dot( Ray.Pos.xyz, Ray.Pos.xyz ) - 1;
+
+  if ( ( B < 0 ) || ( C < 0 ) )
+  {
     float D = B * B - C;
 
-    if ( D < 0 ) return false;
+    if ( D > 0 )
+    {
+      float t = -B - sqrt( D );
 
-    float t = -B - sqrt( D );
+      if ( ( 0 < t ) && ( t < Hit.t ) )
+      {
+        Hit.t   = t;
+        Hit.Pos = Ray.Pos + t * Ray.Vec;
+        Hit.Nor = Hit.Pos;
 
-    if ( t < 0 ) return false;
-
-    Hit.t   = t;
-    Hit.Pos = Ray.Pos.xyz + t * Ray.Vec.xyz;
-    Hit.Nor = Hit.Pos.xyz;
-
-    return true;
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
-//------------------------------------------------------------------------------
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【材質】
 
-vec2 VecToSky( vec3 Vec_ )
+void MatWater( in THit Hit, inout TRay Ray )
 {
-    vec2 Result;
-
-    Result.x = ( Pi - atan( -Vec_.x, -Vec_.z ) ) / Pi2;
-    Result.y =        acos(  Vec_.y          )   / Pi ;
-
-    return Result;
+  Ray.Vec.xyz = refract( Ray.Vec.xyz, Hit.Nor.xyz, 1 / 1.333 );
+  Ray.Col     = Ray.Col * vec3( 1, 1, 1 );
 }
 
-//------------------------------------------------------------------------------
-
-vec4 ToneMap( vec4 C_, float White_ )
+void MatMirro( in THit Hit, inout TRay Ray )
 {
-  vec4 Result;
-
-  Result.rgb = clamp( C_.rgb * ( 1 + C_.rgb / White_ ) / ( 1 + C_.rgb ), 0, 1 );
-  Result.a   = C_.a;
-
-  return Result;
+  Ray.Vec.xyz = reflect( Ray.Vec.xyz, Hit.Nor.xyz );
+  Ray.Col     = Ray.Col * vec3( 1, 1, 1 );
 }
 
-//------------------------------------------------------------------------------
-
-vec4 GammaCorrect( vec4 C_, float Gamma_ )
-{
-  vec4 Result;
-
-  float G = 1 / Gamma_;
-
-  Result.r = pow( C_.r, G );
-  Result.g = pow( C_.g, G );
-  Result.b = pow( C_.b, G );
-  Result.a =      C_.a     ;
-
-  return Result;
-}
-
-////////////////////////////////////////////////////////////////////////////////
+//##############################################################################
 
 void main()
 {
-  vec4 EyePos = vec4( 0, 0, 4, 1 );
+  vec4 EyePos = vec4( 0, 0, 3, 1 );
 
-  vec4 ScreenPos;
-  ScreenPos.x =       4.0 * _WorkID.x / _WorksN.x - 2.0;
-  ScreenPos.y = 1.5 - 3.0 * _WorkID.y / _WorksN.y;
-  ScreenPos.z = 2.0;
-  ScreenPos.w = 1.0;
+  vec4 ScrPos;
+  ScrPos.x =       4.0 * _WorkID.x / _WorksN.x - 2.0;
+  ScrPos.y = 1.5 - 3.0 * _WorkID.y / _WorksN.y;
+  ScrPos.z = 1.0;
+  ScrPos.w = 1.0;
 
   TRay Ray;
-  Ray.Pos = vec4( 0, 0, 2, 1 );
-  Ray.Vec = normalize( ScreenPos - EyePos );
-
-  Ray.Pos = _Matrix * Ray.Pos;
-  Ray.Vec = _Matrix * Ray.Vec;
+  Ray.Pos = _Matrix * EyePos;
+  Ray.Vec = _Matrix * normalize( ScrPos - EyePos );
+  Ray.Col = vec3( 1, 1, 1 );
 
   THit Hit;
-  Hit.t = 10000;
 
-  vec4 C;
-
-  if ( HitShpere( Ray, Hit ) )
+  for ( int I = 0; I < 5; I++ )
   {
-    vec3 R = reflect( Ray.Vec.xyz, Hit.Nor );
+    Hit.t   = 10000;
+    Hit.Mat = 0;
 
-    C = texture( _Textur, VecToSky( R ) );
+    if ( ObjPlane( Ray, Hit ) ) { Hit.Mat = 1; }
+    if ( ObjSpher( Ray, Hit ) ) { Hit.Mat = 2; }
+
+    if ( Hit.Mat == 0 ) break;
+
+    switch ( Hit.Mat )
+    {
+      case 1: MatWater( Hit, Ray ); break;
+      case 2: MatMirro( Hit, Ray ); break;
+    }
+
+    Ray.Pos = Hit.Pos + 0.0001 * Ray.Vec;
   }
-  else
-  {
-    C = texture( _Textur, VecToSky( Ray.Vec.xyz ) );
-  }
+
+  vec3 C = Ray.Col * texture( _Textur, VecToSky( Ray.Vec.xyz ) ).rgb;
 
   C = ToneMap( C, 10 );
+
   C = GammaCorrect( C, 2.2 );
 
-  imageStore( _Imager, _WorkID.xy, C );
+  imageStore( _Imager, _WorkID.xy, vec4( C, 1 ) );
 }
 
 //############################################################################## ■
