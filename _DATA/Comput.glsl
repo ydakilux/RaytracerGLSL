@@ -74,6 +74,22 @@ vec3 GammaCorrect( in vec3 Color, in float Gamma )
   return Result;
 }
 
+//------------------------------------------------------------------------------
+
+float Fresnel( in vec3 RayVec, in vec3 NorVec, in float IOR )
+{
+  // float N = Pow2( IOR );
+  // float C = dot( RayVec, NorVec );
+  // float G = sqrt( N + Pow2( C ) - 1 );
+  // float NC = N * C;
+  // return ( Pow2( (  C + G ) / (  C - G ) )
+  //        + Pow2( ( NC + G ) / ( NC - G ) ) ) / 2;
+
+  float R = pow( ( IOR - 1 ) / ( IOR + 1 ), 2 );
+  float C = dot( RayVec, NorVec );
+  return R + ( 1 - R ) * pow( 1 + C, 5 );
+}
+
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【外部変数】
 
 layout( std430 ) buffer TBuffer
@@ -185,9 +201,17 @@ void MatWater( in TRay Ray, in THit Hit )
 
   const float IOR = 1.333;
 
+  float F = Fresnel( Ray.Vec.xyz, Hit.Nor.xyz, IOR );
+
+  R.Vec = vec4( reflect( Ray.Vec.xyz, Hit.Nor.xyz ), 0 );
+  R.Pos = Hit.Pos + 0.0001 * Hit.Nor;
+  R.Col = Ray.Col * F;
+
+  AddEmRay( R );
+
   R.Vec = vec4( refract( Ray.Vec.xyz, Hit.Nor.xyz, 1 / IOR ), 0 );
   R.Pos = Hit.Pos - 0.0001 * Hit.Nor;
-  R.Col = Ray.Col * vec3( 1, 1, 1 );
+  R.Col = Ray.Col * ( 1 - F );
 
   AddEmRay( R );
 }
