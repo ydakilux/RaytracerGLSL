@@ -28,38 +28,48 @@ const float P2i = Pi / 2.0;
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【ルーチン】
 
-vec2 VecToSky( vec3 Vec_ )
+float Pow2( in float X )
 {
-    vec2 Result;
-
-    Result.x = ( Pi - atan( -Vec_.x, -Vec_.z ) ) / Pi2;
-    Result.y =        acos(  Vec_.y          )   / Pi ;
-
-    return Result;
+  return X * X;
 }
 
 //------------------------------------------------------------------------------
 
-vec3 ToneMap( vec3 C_, float White_ )
+void Swap( inout uint A, inout uint B )
 {
-  vec3 Result;
+  uint C = A;  A = B;  B = C;
+}
 
-  Result = clamp( C_ * ( 1 + C_ / White_ ) / ( 1 + C_ ), 0, 1 );
+//------------------------------------------------------------------------------
+
+vec2 VecToSky( in vec3 Vec )
+{
+  vec2 Result;
+
+  Result.x = ( Pi - atan( -Vec.x, -Vec.z ) ) / Pi2;
+  Result.y =        acos(  Vec.y           ) / Pi ;
 
   return Result;
 }
 
 //------------------------------------------------------------------------------
 
-vec3 GammaCorrect( vec3 C_, float Gamma_ )
+vec3 ToneMap( in vec3 Color, in float White )
+{
+  return clamp( Color * ( 1 + Color / White ) / ( 1 + Color ), 0, 1 );
+}
+
+//------------------------------------------------------------------------------
+
+vec3 GammaCorrect( in vec3 Color, in float Gamma )
 {
   vec3 Result;
 
-  float G = 1 / Gamma_;
+  float G = 1 / Gamma;
 
-  Result.r = pow( C_.r, G );
-  Result.g = pow( C_.g, G );
-  Result.b = pow( C_.b, G );
+  Result.r = pow( Color.r, G );
+  Result.g = pow( Color.g, G );
+  Result.b = pow( Color.b, G );
 
   return Result;
 }
@@ -68,7 +78,7 @@ vec3 GammaCorrect( vec3 C_, float Gamma_ )
 
 layout( std430 ) buffer TBuffer
 {
-    mat4 _Matrix;
+  mat4 _Matrix;
 };
 
 writeonly uniform image2D _Imager;
@@ -81,30 +91,41 @@ uniform sampler2D _Textur;
 
 struct TRay
 {
-    vec4 Pos;
-    vec4 Vec;
-    vec3 Col;
+  vec4 Pos;
+  vec4 Vec;
+  vec3 Col;
 };
 
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% THit
 
 struct THit
 {
-    float t;
-    int   Mat;
-    vec4  Pos;
-    vec4  Nor;
+  float t;
+  int   Mat;
+  vec4  Pos;
+  vec4  Nor;
 };
 
-////////////////////////////////////////////////////////////////////////////////
+//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TRays
 
-TRay _Rays[ 32 ];
-int  _InRaysN;
-int  _EmRaysN;
+const int _RecN = 5;
+
+struct TRays
+{
+  TRay Rays[ 1 << _RecN ];
+  uint RaysN;
+};
+
+TRays _Rayset[ 2 ];
+uint  _InRaysI = 0;
+uint  _EmRaysI = 1;
+
+//------------------------------------------------------------------------------
 
 void AddEmRay( in TRay Ray )
 {
-  _Rays[ _EmRaysN ] = Ray;  _EmRaysN++;
+  _Rayset[ _EmRaysI ].Rays[ _Rayset[ _EmRaysI ].RaysN ] = Ray;
+  _Rayset[ _EmRaysI ].RaysN++;
 }
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【物体】
@@ -119,7 +140,7 @@ bool ObjPlane( in TRay Ray, inout THit Hit )
     {
       Hit.t   = t;
       Hit.Pos = Ray.Pos + t * Ray.Vec;
-      Hit.Nor = vec4( 0, 1, 0, 1 );
+      Hit.Nor = vec4( 0, 1, 0, 0 );
 
       return true;
     }
@@ -137,7 +158,7 @@ bool ObjSpher( in TRay Ray, inout THit Hit )
 
   if ( ( B < 0 ) || ( C < 0 ) )
   {
-    float D = B * B - C;
+    float D = Pow2( B ) - C;
 
     if ( D > 0 )
     {
@@ -162,9 +183,11 @@ void MatWater( in TRay Ray, in THit Hit )
 {
   TRay R;
 
-  R.Vec = vec4( refract( Ray.Vec.xyz, Hit.Nor.xyz, 1 / 1.333 ), 0 );
-  R.Pos = Hit.Pos + 0.0001 * Ray.Vec;
-  R.Col = Ray.Col * vec3( 0.5, 0.5, 0.5 );
+  const float IOR = 1.333;
+
+  R.Vec = vec4( refract( Ray.Vec.xyz, Hit.Nor.xyz, 1 / IOR ), 0 );
+  R.Pos = Hit.Pos - 0.0001 * Hit.Nor;
+  R.Col = Ray.Col * vec3( 1, 1, 1 );
 
   AddEmRay( R );
 }
@@ -176,7 +199,7 @@ void MatMirro( in TRay Ray, in THit Hit )
   TRay R;
 
   R.Vec = vec4( reflect( Ray.Vec.xyz, Hit.Nor.xyz ), 0 );
-  R.Pos = Hit.Pos + 0.0001 * Ray.Vec;
+  R.Pos = Hit.Pos + 0.0001 * Hit.Nor;
   R.Col = Ray.Col * vec3( 1, 1, 1 );
 
   AddEmRay( R );
@@ -186,52 +209,57 @@ void MatMirro( in TRay Ray, in THit Hit )
 
 void main()
 {
-  vec4 EyePos = vec4( 0, 0, 3, 1 );
+  const vec4 EyePos = vec4( 0, 0, 3, 1 );
 
   vec4 ScrPos;
-  ScrPos.x =       4.0 * _WorkID.x / _WorksN.x - 2.0;
-  ScrPos.y = 1.5 - 3.0 * _WorkID.y / _WorksN.y;
-  ScrPos.z = 1.0;
-  ScrPos.w = 1.0;
+  ScrPos.x =       4 * ( _WorkID.x + 0.5 ) / _WorksN.x - 2;
+  ScrPos.y = 1.5 - 3 * ( _WorkID.y + 0.5 ) / _WorksN.y    ;
+  ScrPos.z = 1;
+  ScrPos.w = 1;
+
+  TRay PriRay;
+  PriRay.Pos = _Matrix * EyePos;
+  PriRay.Vec = _Matrix * normalize( ScrPos - EyePos );
+  PriRay.Col = vec3( 1, 1, 1 );
 
   vec3 C = vec3( 0, 0, 0 );
 
-  _InRaysN = 1;
-  _Rays[ 0 ].Pos = _Matrix * EyePos;
-  _Rays[ 0 ].Vec = _Matrix * normalize( ScrPos - EyePos );
-  _Rays[ 0 ].Col = vec3( 1, 1, 1 );
+  _Rayset[ _InRaysI ].Rays[ 0 ] = PriRay;
+  _Rayset[ _InRaysI ].RaysN     = 1;
 
-  for( int N = 0; N < 5; N++ )
+  for( int N = 0; N < _RecN; N++ )
   {
-    _EmRaysN = 0;
+    _Rayset[ _EmRaysI ].RaysN = 0;
 
-    for( int I = 0; I < _InRaysN; I++ )
+    for( int I = 0; I < _Rayset[ _InRaysI ].RaysN; I++ )
     {
+      TRay Ray = _Rayset[ _InRaysI ].Rays[ I ];
+
       THit Hit;
       Hit.t   = 10000;
       Hit.Mat = 0;
 
-      if ( ObjPlane( _Rays[ I ], Hit ) ) { Hit.Mat = 1; }
-      if ( ObjSpher( _Rays[ I ], Hit ) ) { Hit.Mat = 2; }
+      if ( ObjPlane( Ray, Hit ) ) { Hit.Mat = 1; }
+      if ( ObjSpher( Ray, Hit ) ) { Hit.Mat = 2; }
 
-      if ( Hit.Mat == 0 )
+      if( Hit.Mat == 0 )
       {
-        C += _Rays[ I ].Col * texture( _Textur, VecToSky( _Rays[ I ].Vec.xyz ) ).rgb;
-
-        continue;
+        C += Ray.Col * texture( _Textur, VecToSky( Ray.Vec.xyz ) ).rgb;
       }
-
-      switch ( Hit.Mat )
+      else
       {
-        case 1: MatWater( _Rays[ I ], Hit ); break;
-        case 2: MatMirro( _Rays[ I ], Hit ); break;
+        switch( Hit.Mat )
+        {
+          case 1: MatWater( Ray, Hit ); break;
+          case 2: MatMirro( Ray, Hit ); break;
+        }
       }
     }
 
-    _InRaysN = _EmRaysN;
+    Swap( _InRaysI, _EmRaysI );
   }
 
-  C = ToneMap( C, 10 );
+  C = ToneMap( C, 100 );
 
   C = GammaCorrect( C, 2.2 );
 
