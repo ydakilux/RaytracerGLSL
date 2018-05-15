@@ -76,17 +76,17 @@ vec3 GammaCorrect( in vec3 Color, in float Gamma )
 
 //------------------------------------------------------------------------------
 
-float Fresnel( in vec3 RayVec, in vec3 NorVec, in float IOR )
+float Fresnel( in vec3 Vec, in vec3 Nor, in float IOR )
 {
   // float N = Pow2( IOR );
-  // float C = dot( RayVec, NorVec );
+  // float C = dot( Vec, Nor );
   // float G = sqrt( N + Pow2( C ) - 1 );
   // float NC = N * C;
   // return ( Pow2( (  C + G ) / (  C - G ) )
   //        + Pow2( ( NC + G ) / ( NC - G ) ) ) / 2;
 
   float R = pow( ( IOR - 1 ) / ( IOR + 1 ), 2 );
-  float C = dot( RayVec, NorVec );
+  float C = dot( Vec, Nor );
   return R + ( 1 - R ) * pow( 1 + C, 5 );
 }
 
