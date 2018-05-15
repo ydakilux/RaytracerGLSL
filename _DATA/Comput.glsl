@@ -96,9 +96,20 @@ struct THit
     vec4  Nor;
 };
 
+////////////////////////////////////////////////////////////////////////////////
+
+TRay _Rays[ 32 ];
+int  _InRaysN;
+int  _EmRaysN;
+
+void AddEmRay( in TRay Ray )
+{
+  _Rays[ _EmRaysN ] = Ray;  _EmRaysN++;
+}
+
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【物体】
 
-bool ObjPlane( TRay Ray, inout THit Hit )
+bool ObjPlane( in TRay Ray, inout THit Hit )
 {
   if ( Ray.Vec.y < 0 )
   {
@@ -118,7 +129,7 @@ bool ObjPlane( TRay Ray, inout THit Hit )
 
 //------------------------------------------------------------------------------
 
-bool ObjSpher( TRay Ray, inout THit Hit )
+bool ObjSpher( in TRay Ray, inout THit Hit )
 {
   float B = dot( Ray.Pos.xyz, Ray.Vec.xyz );
 
@@ -147,16 +158,28 @@ bool ObjSpher( TRay Ray, inout THit Hit )
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【材質】
 
-void MatWater( in THit Hit, inout TRay Ray )
+void MatWater( in TRay Ray, in THit Hit )
 {
-  Ray.Vec.xyz = refract( Ray.Vec.xyz, Hit.Nor.xyz, 1 / 1.333 );
-  Ray.Col     = Ray.Col * vec3( 1, 1, 1 );
+  TRay R;
+
+  R.Vec = vec4( refract( Ray.Vec.xyz, Hit.Nor.xyz, 1 / 1.333 ), 0 );
+  R.Pos = Hit.Pos + 0.0001 * Ray.Vec;
+  R.Col = Ray.Col * vec3( 0.5, 0.5, 0.5 );
+
+  AddEmRay( R );
 }
 
-void MatMirro( in THit Hit, inout TRay Ray )
+//------------------------------------------------------------------------------
+
+void MatMirro( in TRay Ray, in THit Hit )
 {
-  Ray.Vec.xyz = reflect( Ray.Vec.xyz, Hit.Nor.xyz );
-  Ray.Col     = Ray.Col * vec3( 1, 1, 1 );
+  TRay R;
+
+  R.Vec = vec4( reflect( Ray.Vec.xyz, Hit.Nor.xyz ), 0 );
+  R.Pos = Hit.Pos + 0.0001 * Ray.Vec;
+  R.Col = Ray.Col * vec3( 1, 1, 1 );
+
+  AddEmRay( R );
 }
 
 //##############################################################################
@@ -171,33 +194,42 @@ void main()
   ScrPos.z = 1.0;
   ScrPos.w = 1.0;
 
-  TRay Ray;
-  Ray.Pos = _Matrix * EyePos;
-  Ray.Vec = _Matrix * normalize( ScrPos - EyePos );
-  Ray.Col = vec3( 1, 1, 1 );
+  vec3 C = vec3( 0, 0, 0 );
 
-  THit Hit;
+  _InRaysN = 1;
+  _Rays[ 0 ].Pos = _Matrix * EyePos;
+  _Rays[ 0 ].Vec = _Matrix * normalize( ScrPos - EyePos );
+  _Rays[ 0 ].Col = vec3( 1, 1, 1 );
 
-  for ( int I = 0; I < 5; I++ )
+  for( int N = 0; N < 5; N++ )
   {
-    Hit.t   = 10000;
-    Hit.Mat = 0;
+    _EmRaysN = 0;
 
-    if ( ObjPlane( Ray, Hit ) ) { Hit.Mat = 1; }
-    if ( ObjSpher( Ray, Hit ) ) { Hit.Mat = 2; }
-
-    if ( Hit.Mat == 0 ) break;
-
-    switch ( Hit.Mat )
+    for( int I = 0; I < _InRaysN; I++ )
     {
-      case 1: MatWater( Hit, Ray ); break;
-      case 2: MatMirro( Hit, Ray ); break;
+      THit Hit;
+      Hit.t   = 10000;
+      Hit.Mat = 0;
+
+      if ( ObjPlane( _Rays[ I ], Hit ) ) { Hit.Mat = 1; }
+      if ( ObjSpher( _Rays[ I ], Hit ) ) { Hit.Mat = 2; }
+
+      if ( Hit.Mat == 0 )
+      {
+        C += _Rays[ I ].Col * texture( _Textur, VecToSky( _Rays[ I ].Vec.xyz ) ).rgb;
+
+        continue;
+      }
+
+      switch ( Hit.Mat )
+      {
+        case 1: MatWater( _Rays[ I ], Hit ); break;
+        case 2: MatMirro( _Rays[ I ], Hit ); break;
+      }
     }
 
-    Ray.Pos = Hit.Pos + 0.0001 * Ray.Vec;
+    _InRaysN = _EmRaysN;
   }
-
-  vec3 C = Ray.Col * texture( _Textur, VecToSky( Ray.Vec.xyz ) ).rgb;
 
   C = ToneMap( C, 10 );
 
