@@ -8,7 +8,7 @@
 [![](https://github.com/LUXOPHIA/Raytracer_OpenGL/raw/master/--------/_SCREENSHOT/RaytracerGLSL.png)]()
 
 ### Ray-tracing with Compute Shader
-GLSL では関数の[再帰呼び出し](https://ja.wikipedia.org/wiki/再帰#再帰呼出し)が利用できないので、レイトレーシングのアルゴリズムを幅優先で実装する必要がある。
+[GLSL](https://ja.wikipedia.org/wiki/GLSL) では関数の[再帰呼び出し](https://ja.wikipedia.org/wiki/再帰#再帰呼出し)が利用できないので、レイトレーシングのアルゴリズムを幅優先で実装する必要がある。
 ソースコードは以下を参照。
 > https://github.com/LUXOPHIA/RaytracerGLSL/blob/master/_DATA/Comput.glsl
 
