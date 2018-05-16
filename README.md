@@ -4,7 +4,7 @@
 
 ※ 現在 学生への出題中につき、フレネル項の実装の公開は５日後。
 
-[**[ YouTube ]**](https://youtu.be/NjPYuC4lKfo)　[**[ Vimeo (original) ]**](https://vimeo.com/270096538)
+[**[ YouTube 4K ]**](https://youtu.be/NjPYuC4lKfo)　[**[ Vimeo 4K** (original) **]**](https://vimeo.com/270096538)
 [![](https://github.com/LUXOPHIA/Raytracer_OpenGL/raw/master/--------/_SCREENSHOT/RaytracerGLSL.png)]()
 
 ----
