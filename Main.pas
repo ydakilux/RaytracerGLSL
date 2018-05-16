@@ -96,8 +96,6 @@ begin
      InitComput;
 
      _Textur.Imager.LoadFromFileHDR( '..\..\_DATA\Luxo-Jr_2000x1000.hdr' );
-
-     _Buffer[ 0 ] := TSingleM4.Identity;
 end;
 
 procedure TForm1.FormDestroy(Sender: TObject);
@@ -112,6 +110,9 @@ end;
 
 procedure TForm1.Timer1Timer(Sender: TObject);
 begin
+     _Buffer[ 0 ] := TSingleM4.RotateX( DegToRad( _MouseA.Y ) )
+                   * TSingleM4.RotateY( DegToRad( _MouseA.X ) );
+
      _Comput.Run;
 
      _Imager.CopyTo( Image1.Bitmap );
@@ -136,9 +137,6 @@ begin
           _MouseA := _MouseA + ( P - _MouseP );
 
           _MouseP := P;
-
-          _Buffer[ 0 ] := TSingleM4.RotateX( DegToRad( _MouseA.Y ) )
-                        * TSingleM4.RotateY( DegToRad( _MouseA.X ) );
      end;
 end;
 
