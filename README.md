@@ -5,7 +5,7 @@
 ※ 現在 学生への出題中につき、フレネル反射の実装は５日後に公開。
 
 [**[ YouTube 4K ]**](https://youtu.be/NjPYuC4lKfo)　[**[ Vimeo 4K** (original) **]**](https://vimeo.com/270096538)
-[![](https://github.com/LUXOPHIA/Raytracer_OpenGL/raw/master/--------/_SCREENSHOT/RaytracerGLSL.png)]()
+[![](https://github.com/LUXOPHIA/Raytracer_OpenGL/raw/master/--------/_SCREENSHOT/RaytracerGLSL.png)](https://youtu.be/NjPYuC4lKfo)
 
 ### Ray-tracing with Compute Shader
 [GLSL](https://ja.wikipedia.org/wiki/GLSL) では関数の[再帰呼び出し](https://ja.wikipedia.org/wiki/再帰#再帰呼出し)が利用できないので、レイトレーシングのアルゴリズムを幅優先で実装する必要がある。
