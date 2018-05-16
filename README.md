@@ -1,6 +1,6 @@
 # RaytracerGLSL
 
-[OpenGL](https://ja.wikipedia.org/wiki/OpenGL) の [Compute Shader](https://www.khronos.org/opengl/wiki/Compute_Shader) を用いて **幅優先(Breadth-first)[レイトレーシング](https://ja.wikipedia.org/wiki/レイトレーシング)** を実装した。金属や水面のフレネル反射や屈折を表現。[環境マッピング](https://ja.wikipedia.org/wiki/環境マッピング)には [HDRI](https://ja.wikipedia.org/wiki/ハイダイナミックレンジイメージ) を用い、簡易な[トーンマッピング](https://en.wikipedia.org/wiki/Tone_mapping)も導入。
+[OpenGL](https://ja.wikipedia.org/wiki/OpenGL) の [Compute Shader](https://www.khronos.org/opengl/wiki/Compute_Shader) を用いて **幅優先[レイトレーシング](https://ja.wikipedia.org/wiki/レイトレーシング)(Breadth-first [Ray-tracing](https://en.wikipedia.org/wiki/Ray_tracing_(graphics)))** を実装した。金属や水面のフレネル反射や屈折を表現。[環境マッピング](https://ja.wikipedia.org/wiki/環境マッピング)には [HDRI](https://ja.wikipedia.org/wiki/ハイダイナミックレンジイメージ) を用い、簡易な[トーンマッピング](https://en.wikipedia.org/wiki/Tone_mapping)も導入。
 
 ※ 現在 学生への出題中につき、フレネル反射の実装は５日後に公開。
 
