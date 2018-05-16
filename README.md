@@ -1,8 +1,11 @@
 # RaytracerGLSL
 
-[OpenGL](https://ja.wikipedia.org/wiki/OpenGL) の [Compute Shader](https://www.khronos.org/opengl/wiki/Compute_Shader) を用いて[レイトレーシング](https://ja.wikipedia.org/wiki/レイトレーシング)法を実装する方法。
+[OpenGL](https://ja.wikipedia.org/wiki/OpenGL) の [Compute Shader](https://www.khronos.org/opengl/wiki/Compute_Shader) を用いて **幅優先(Breadth-first)[レイトレーシング](https://ja.wikipedia.org/wiki/レイトレーシング)法** を実装する方法。金属や水面のフレネル反射や屈折を表現。環境マッピングには #HDRI を用い、簡易なトーンマッピングも導入。
 
-![](https://github.com/LUXOPHIA/Raytracer_OpenGL/raw/master/--------/_SCREENSHOT/RaytracerGLSL.png)
+※ 現在 学生への出題中につき、フレネル項の実装の公開は５日後。
+
+[**［YouTube］**](https://youtu.be/NjPYuC4lKfo)　[**[ Vimeo (original) ]**](https://vimeo.com/270096538)
+[![](https://github.com/LUXOPHIA/Raytracer_OpenGL/raw/master/--------/_SCREENSHOT/RaytracerGLSL.png)]()
 
 ----
 
