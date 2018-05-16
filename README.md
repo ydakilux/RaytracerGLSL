@@ -7,6 +7,12 @@
 [**[ YouTube 4K ]**](https://youtu.be/NjPYuC4lKfo)　[**[ Vimeo 4K** (original) **]**](https://vimeo.com/270096538)
 [![](https://github.com/LUXOPHIA/Raytracer_OpenGL/raw/master/--------/_SCREENSHOT/RaytracerGLSL.png)]()
 
+### Ray-tracing with Compute Shader
+GLSL では関数の[再帰呼び出し](https://ja.wikipedia.org/wiki/再帰#再帰呼出し)が利用できないので、レイトレーシングのアルゴリズムを幅優先で実装する必要がある。
+ソースコードは以下を参照。
+> https://github.com/LUXOPHIA/RaytracerGLSL/blob/master/_DATA/Comput.glsl
+
+
 ----
 
 [![Delphi Starter](http://img.en25.com/EloquaImages/clients/Embarcadero/%7B063f1eec-64a6-4c19-840f-9b59d407c914%7D_dx-starter-bn159.png)](https://www.embarcadero.com/jp/products/delphi/starter)
