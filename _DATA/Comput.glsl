@@ -242,17 +242,11 @@ void main()
       if ( ObjPlane( Ray, Hit ) ) { Hit.Mat = 1; }
       if ( ObjSpher( Ray, Hit ) ) { Hit.Mat = 2; }
 
-      if( Hit.Mat == 0 )
+      switch( Hit.Mat )
       {
-        C += Ray.Col * texture( _Textur, VecToSky( Ray.Vec.xyz ) ).rgb;
-      }
-      else
-      {
-        switch( Hit.Mat )
-        {
-          case 1: MatWater( Ray, Hit ); break;
-          case 2: MatMirro( Ray, Hit ); break;
-        }
+        case 0: C += Ray.Col * texture( _Textur, VecToSky( Ray.Vec.xyz ) ).rgb; break;
+        case 1: MatWater( Ray, Hit ); break;
+        case 2: MatMirro( Ray, Hit ); break;
       }
     }
 
