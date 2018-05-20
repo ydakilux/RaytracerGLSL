@@ -5,7 +5,7 @@ interface //####################################################################
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs,
-  FMX.Controls.Presentation, FMX.StdCtrls, FMX.Objects,
+  FMX.Controls.Presentation, FMX.StdCtrls, FMX.Objects, FMX.TabControl, FMX.ScrollBox, FMX.Memo,
   Winapi.OpenGL, Winapi.OpenGLext,
   LUX, LUX.D1, LUX.D2, LUX.D3, LUX.M4, LUX.FMX.Controls,
   LUX.GPU.OpenGL,
@@ -21,7 +21,11 @@ uses
 
 type
   TForm1 = class(TForm)
-    Image1: TImage;
+    TabControl1: TTabControl;
+      TabItem1: TTabItem;
+        Image1: TImage;
+      TabItem2: TTabItem;
+        Memo1: TMemo;
     Timer1: TTimer;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -71,8 +75,12 @@ begin
 
      _Comput.ShaderC.Source.LoadFromFile( '..\..\_DATA\Comput.glsl' );
 
-     Assert( _Comput.ShaderC.Status, _Comput.ShaderC.Errors.Text );
-     Assert( _Comput.Engine .Status, _Comput.Engine .Errors.Text );
+     with Memo1.Lines do
+     begin
+          Assign( _Comput.Engine.Errors );
+
+          if Count > 0 then TabControl1.TabIndex := 1;
+     end;
 
      _Comput.Buffers.Add( 'TBuffer', _Buffer );
      _Comput.Imagers.Add( '_Imager', _Imager );
