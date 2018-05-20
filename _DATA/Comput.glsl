@@ -84,8 +84,8 @@ float Fresnel( in vec3 Vec, in vec3 Nor, in float IOR )
   //        + Pow2( ( NC + G ) / ( NC - G ) ) ) / 2;
 
   float R = Pow2( ( IOR - 1 ) / ( IOR + 1 ) );
-  float C = dot( Vec, Nor );
-  return min( R + ( 1 - R ) * pow( 1 + C, 5 ), 1 );
+  float C = clamp( dot( Vec, Nor ), -1, 0 );
+  return R + ( 1 - R ) * pow( 1 + C, 5 );
 }
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【外部変数】
