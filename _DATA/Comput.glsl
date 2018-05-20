@@ -33,11 +33,9 @@ float Pow2( in float X )
   return X * X;
 }
 
-//------------------------------------------------------------------------------
-
-void Swap( inout uint A, inout uint B )
+float length2( in vec3 V )
 {
-  uint C = A;  A = B;  B = C;
+  return Pow2( V.x ) + Pow2( V.y ) + Pow2( V.z );
 }
 
 //------------------------------------------------------------------------------
@@ -85,9 +83,9 @@ float Fresnel( in vec3 Vec, in vec3 Nor, in float IOR )
   // return ( Pow2( (  C + G ) / (  C - G ) )
   //        + Pow2( ( NC + G ) / ( NC - G ) ) ) / 2;
 
-  float R = pow( ( IOR - 1 ) / ( IOR + 1 ), 2 );
+  float R = Pow2( ( IOR - 1 ) / ( IOR + 1 ) );
   float C = dot( Vec, Nor );
-  return R + ( 1 - R ) * pow( 1 + C, 5 );
+  return min( R + ( 1 - R ) * pow( 1 + C, 5 ), 1 );
 }
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【外部変数】
@@ -117,24 +115,39 @@ struct TRay
 struct THit
 {
   float t;
-  int   Mat;
   vec4  Pos;
   vec4  Nor;
 };
 
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TRays
 
-const int _RecN = 5;
+const int _RecN = 6;
 
 struct TRays
 {
   TRay Rays[ 1 << _RecN ];
-  uint RaysN;
+  int  RaysN;
 };
 
 TRays _Rayset[ 2 ];
-uint  _InRaysI = 0;
-uint  _EmRaysI = 1;
+int   _InRaysI = 0;
+int   _EmRaysI = 1;
+
+//------------------------------------------------------------------------------
+
+void InitRayset()
+{
+  _Rayset[ _EmRaysI ].RaysN = 0;
+}
+
+//------------------------------------------------------------------------------
+
+void NextRayset()
+{
+  int I = _InRaysI;  _InRaysI = _EmRaysI;  _EmRaysI = I;
+
+  InitRayset();
+}
 
 //------------------------------------------------------------------------------
 
@@ -148,11 +161,11 @@ void AddEmRay( in TRay Ray )
 
 bool ObjPlane( in TRay Ray, inout THit Hit )
 {
-  if ( Ray.Vec.y < 0 )
+  if( Ray.Vec.y < 0 )
   {
     float t = ( Ray.Pos.y - -2 ) / -Ray.Vec.y;
 
-    if ( ( 0 < t ) && ( t < Hit.t ) )
+    if( ( 0 < t ) && ( t < Hit.t ) )
     {
       Hit.t   = t;
       Hit.Pos = Ray.Pos + t * Ray.Vec;
@@ -161,6 +174,7 @@ bool ObjPlane( in TRay Ray, inout THit Hit )
       return true;
     }
   }
+
   return false;
 }
 
@@ -169,48 +183,61 @@ bool ObjPlane( in TRay Ray, inout THit Hit )
 bool ObjSpher( in TRay Ray, inout THit Hit )
 {
   float B = dot( Ray.Pos.xyz, Ray.Vec.xyz );
+  float C = length2( Ray.Pos.xyz ) - 1;
 
-  float C = dot( Ray.Pos.xyz, Ray.Pos.xyz ) - 1;
+  float D = Pow2( B ) - C;
 
-  if ( ( B < 0 ) || ( C < 0 ) )
+  if( D > 0 )
   {
-    float D = Pow2( B ) - C;
+    float t = -B - sign( C ) * sqrt( D );
 
-    if ( D > 0 )
+    if( ( 0 < t ) && ( t < Hit.t ) )
     {
-      float t = -B - sqrt( D );
+      Hit.t   = t;
+      Hit.Pos = Ray.Pos + t * Ray.Vec;
+      Hit.Nor = Hit.Pos;
 
-      if ( ( 0 < t ) && ( t < Hit.t ) )
-      {
-        Hit.t   = t;
-        Hit.Pos = Ray.Pos + t * Ray.Vec;
-        Hit.Nor = Hit.Pos;
-
-        return true;
-      }
+      return true;
     }
   }
+
   return false;
 }
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【材質】
 
+const float _EmitShift = 0.0001;
+
+////////////////////////////////////////////////////////////////////////////////
+
 void MatWater( in TRay Ray, in THit Hit )
 {
+  float IOR;
+  vec4  Nor;
+
+  if( dot( Ray.Vec.xyz, Hit.Nor.xyz ) < 0 )
+  {
+    IOR = 1.333 / 1.000;
+    Nor = +Hit.Nor;
+  }
+  else
+  {
+    IOR = 1.000 / 1.333;
+    Nor = -Hit.Nor;
+  }
+
   TRay R;
 
-  const float IOR = 1.333;
+  float F = Fresnel( Ray.Vec.xyz, Nor.xyz, IOR );
 
-  float F = Fresnel( Ray.Vec.xyz, Hit.Nor.xyz, IOR );
-
-  R.Vec = vec4( reflect( Ray.Vec.xyz, Hit.Nor.xyz ), 0 );
-  R.Pos = Hit.Pos + 0.0001 * Hit.Nor;
+  R.Vec = vec4( reflect( Ray.Vec.xyz, Nor.xyz ), 0 );
+  R.Pos = Hit.Pos + _EmitShift * Nor;
   R.Col = Ray.Col * F;
 
   AddEmRay( R );
 
-  R.Vec = vec4( refract( Ray.Vec.xyz, Hit.Nor.xyz, 1 / IOR ), 0 );
-  R.Pos = Hit.Pos - 0.0001 * Hit.Nor;
+  R.Vec = vec4( refract( Ray.Vec.xyz, Nor.xyz, 1 / IOR ), 0 );
+  R.Pos = Hit.Pos - _EmitShift * Nor;
   R.Col = Ray.Col * ( 1 - F );
 
   AddEmRay( R );
@@ -223,7 +250,7 @@ void MatMirro( in TRay Ray, in THit Hit )
   TRay R;
 
   R.Vec = vec4( reflect( Ray.Vec.xyz, Hit.Nor.xyz ), 0 );
-  R.Pos = Hit.Pos + 0.0001 * Hit.Nor;
+  R.Pos = Hit.Pos + _EmitShift * Hit.Nor;
   R.Col = Ray.Col * vec3( 1, 1, 1 );
 
   AddEmRay( R );
@@ -248,33 +275,36 @@ void main()
 
   vec3 C = vec3( 0, 0, 0 );
 
-  _Rayset[ _InRaysI ].Rays[ 0 ] = PriRay;
-  _Rayset[ _InRaysI ].RaysN     = 1;
+  InitRayset();
+
+  AddEmRay( PriRay );
+
+  THit Hit;
+  Hit.Pos = vec4( 0 );
+  Hit.Nor = vec4( 0 );
 
   for( int N = 0; N < _RecN; N++ )
   {
-    _Rayset[ _EmRaysI ].RaysN = 0;
+    NextRayset();
 
     for( int I = 0; I < _Rayset[ _InRaysI ].RaysN; I++ )
     {
       TRay Ray = _Rayset[ _InRaysI ].Rays[ I ];
 
-      THit Hit;
-      Hit.t   = 10000;
-      Hit.Mat = 0;
+      Hit.t = 10000;
 
-      if ( ObjPlane( Ray, Hit ) ) { Hit.Mat = 1; }
-      if ( ObjSpher( Ray, Hit ) ) { Hit.Mat = 2; }
+      int Mat = 0;
 
-      switch( Hit.Mat )
+      if ( ObjSpher( Ray, Hit ) ) { Mat = 1; }
+      if ( ObjPlane( Ray, Hit ) ) { Mat = 2; }
+
+      switch( Mat )
       {
         case 0: C += Ray.Col * texture( _Textur, VecToSky( Ray.Vec.xyz ) ).rgb; break;
         case 1: MatWater( Ray, Hit ); break;
         case 2: MatMirro( Ray, Hit ); break;
       }
     }
-
-    Swap( _InRaysI, _EmRaysI );
   }
 
   C = ToneMap( C, 100 );
