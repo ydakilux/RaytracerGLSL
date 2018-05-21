@@ -40,10 +40,14 @@ type
     _MouseA :TSingle2D;
   public
     { public 宣言 }
+    _ImageX :Integer;
+    _ImageY :Integer;
     _Comput :TGLComput;
     _Imager :TGLCelIma2D_TAlphaColorF;
-    _Textur :TGLCelTex2D_TAlphaColorF;
+    _Accumr :TGLCelIma2D_TAlphaColorF;
+    _AccumN :TGLStoBuf<Integer>;
     _Buffer :TGLStoBuf<TSingleM4>;
+    _Textur :TGLCelTex2D_TAlphaColorF;
     ///// メソッド
     procedure InitComput;
   end;
@@ -69,9 +73,9 @@ begin
      _Comput.ItemsY := 10;
      _Comput.ItemsZ :=  1;
 
-     _Comput.WorksX := _Imager.Grid.CellsX;
-     _Comput.WorksY := _Imager.Grid.CellsY;
-     _Comput.WorksZ :=                   1;
+     _Comput.WorksX := _ImageX;
+     _Comput.WorksY := _ImageY;
+     _Comput.WorksZ :=       1;
 
      _Comput.ShaderC.Source.LoadFromFile( '..\..\_DATA\Comput.glsl' );
 
@@ -82,8 +86,10 @@ begin
           if Count > 0 then TabControl1.TabIndex := 1;
      end;
 
-     _Comput.Buffers.Add( 'TBuffer', _Buffer );
      _Comput.Imagers.Add( '_Imager', _Imager );
+     _Comput.Imagers.Add( '_Accumr', _Accumr );
+     _Comput.Buffers.Add( 'TAccumN', _AccumN );
+     _Comput.Buffers.Add( 'TBuffer', _Buffer );
      _Comput.Texturs.Add( '_Textur', _Textur );
 end;
 
@@ -93,15 +99,25 @@ procedure TForm1.FormCreate(Sender: TObject);
 begin
      Image1.AutoCapture := True;
 
-     _Comput := TGLComput.Create;
-     _Imager := TGLCelIma2D_TAlphaColorF.Create;
-     _Textur := TGLCelTex2D_TAlphaColorF.Create;
-     _Buffer := TGLStoBuf<TSingleM4>.Create( GL_STATIC_DRAW );
+     _ImageX := 800;
+     _ImageY := 600;
 
-     _Imager.Grid.CellsX := 800;
-     _Imager.Grid.CellsY := 600;
+     _Comput := TGLComput               .Create;
+     _Imager := TGLCelIma2D_TAlphaColorF.Create;
+     _Accumr := TGLCelIma2D_TAlphaColorF.Create;
+     _AccumN := TGLStoBuf<Integer>      .Create( GL_DYNAMIC_DRAW );
+     _Buffer := TGLStoBuf<TSingleM4>    .Create( GL_DYNAMIC_DRAW );
+     _Textur := TGLCelTex2D_TAlphaColorF.Create;
 
      InitComput;
+
+     _Imager.Grid.CellsX := _ImageX;
+     _Imager.Grid.CellsY := _ImageY;
+
+     _Accumr.Grid.CellsX := _ImageX;
+     _Accumr.Grid.CellsY := _ImageY;
+
+     _AccumN[ 0 ] := 0;
 
      _Textur.Imager.LoadFromFileHDR( '..\..\_DATA\Luxo-Jr_2000x1000.hdr' );
 end;
@@ -110,8 +126,10 @@ procedure TForm1.FormDestroy(Sender: TObject);
 begin
      _Comput.DisposeOf;
      _Imager.DisposeOf;
-     _Textur.DisposeOf;
+     _Accumr.DisposeOf;
+     _AccumN.DisposeOf;
      _Buffer.DisposeOf;
+     _Textur.DisposeOf;
 end;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -122,6 +140,8 @@ begin
                    * TSingleM4.RotateY( DegToRad( _MouseA.X ) );
 
      _Comput.Run;
+
+     _AccumN[ 0 ] := _AccumN[ 0 ] + 1;
 
      _Imager.CopyTo( Image1.Bitmap );
 end;
@@ -145,6 +165,8 @@ begin
           _MouseA := _MouseA + ( P - _MouseP );
 
           _MouseP := P;
+
+          _AccumN[ 0 ] := 0;
      end;
 end;
 
