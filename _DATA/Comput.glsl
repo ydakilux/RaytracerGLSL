@@ -105,6 +105,7 @@ uniform sampler2D _Textur;
 
 struct TRay
 {
+  int  Lev;
   vec4 Pos;
   vec4 Vec;
   vec3 Col;
@@ -123,38 +124,32 @@ struct THit
 
 const int _RecN = 6;
 
-struct TRays
-{
-  TRay Rays[ 1 << _RecN ];
-  int  RaysN;
-};
-
-TRays _Rayset[ 2 ];
-int   _InRaysI = 0;
-int   _EmRaysI = 1;
+TRay _Rays[ _RecN ];
+int  _RaysN;
 
 //------------------------------------------------------------------------------
 
-void InitRayset()
+void InitRays()
 {
-  _Rayset[ _EmRaysI ].RaysN = 0;
+  const TRay R = TRay( 0, vec4( 0 ), vec4( 0 ), vec3( 0 ) );
+
+  for( int I = 0; I < _RecN; I++ ) _Rays[ I ] = R;
+
+  _RaysN = 0;
 }
 
-//------------------------------------------------------------------------------
-
-void NextRayset()
+void PushRay( in TRay Ray )
 {
-  int I = _InRaysI;  _InRaysI = _EmRaysI;  _EmRaysI = I;
+  _Rays[ _RaysN ] = Ray;
 
-  InitRayset();
+  _RaysN++;
 }
 
-//------------------------------------------------------------------------------
-
-void AddEmRay( in TRay Ray )
+TRay PopRay()
 {
-  _Rayset[ _EmRaysI ].Rays[ _Rayset[ _EmRaysI ].RaysN ] = Ray;
-  _Rayset[ _EmRaysI ].RaysN++;
+  _RaysN--;
+
+  return _Rays[ _RaysN ];
 }
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【物体】
@@ -228,19 +223,21 @@ void MatWater( in TRay Ray, in THit Hit )
 
   TRay R;
 
+  R.Lev = Ray.Lev + 1;
+
   float F = Fresnel( Ray.Vec.xyz, Nor.xyz, IOR );
 
   R.Vec = vec4( reflect( Ray.Vec.xyz, Nor.xyz ), 0 );
   R.Pos = Hit.Pos + _EmitShift * Nor;
   R.Col = Ray.Col * F;
 
-  AddEmRay( R );
+  PushRay( R );
 
   R.Vec = vec4( refract( Ray.Vec.xyz, Nor.xyz, 1 / IOR ), 0 );
   R.Pos = Hit.Pos - _EmitShift * Nor;
   R.Col = Ray.Col * ( 1 - F );
 
-  AddEmRay( R );
+  PushRay( R );
 }
 
 //------------------------------------------------------------------------------
@@ -249,11 +246,12 @@ void MatMirro( in TRay Ray, in THit Hit )
 {
   TRay R;
 
+  R.Lev = Ray.Lev + 1;
   R.Vec = vec4( reflect( Ray.Vec.xyz, Hit.Nor.xyz ), 0 );
   R.Pos = Hit.Pos + _EmitShift * Hit.Nor;
   R.Col = Ray.Col * vec3( 1, 1, 1 );
 
-  AddEmRay( R );
+  PushRay( R );
 }
 
 //##############################################################################
@@ -269,28 +267,27 @@ void main()
   ScrPos.w = 1;
 
   TRay PriRay;
+  PriRay.Lev = 0;
   PriRay.Pos = _Matrix * EyePos;
   PriRay.Vec = _Matrix * normalize( ScrPos - EyePos );
   PriRay.Col = vec3( 1, 1, 1 );
 
   vec3 C = vec3( 0, 0, 0 );
 
-  InitRayset();
+  InitRays();
 
-  AddEmRay( PriRay );
+  PushRay( PriRay );
 
   THit Hit;
   Hit.Pos = vec4( 0 );
   Hit.Nor = vec4( 0 );
 
-  for( int N = 0; N < _RecN; N++ )
+  while( _RaysN > 0 )
   {
-    NextRayset();
+    TRay Ray = PopRay();
 
-    for( int I = 0; I < _Rayset[ _InRaysI ].RaysN; I++ )
+    if( Ray.Lev < _RecN )
     {
-      TRay Ray = _Rayset[ _InRaysI ].Rays[ I ];
-
       Hit.t = 10000;
 
       int Mat = 0;
