@@ -33,9 +33,38 @@ float Pow2( in float X )
   return X * X;
 }
 
+//------------------------------------------------------------------------------
+
 float length2( in vec3 V )
 {
   return Pow2( V.x ) + Pow2( V.y ) + Pow2( V.z );
+}
+
+//------------------------------------------------------------------------------
+
+float Hash( in float x )
+{
+  return fract( sin( x ) * 43758.5453123 );
+}
+
+//------------------------------------------------------------------------------
+
+vec4 _RandSeed;
+
+float Random()
+{
+  const vec4 q = vec4(    1225,    1585,    2457,    2098 );
+  const vec4 r = vec4(    1112,     367,      92,     265 );
+  const vec4 a = vec4(    3423,    2646,    1707,    1999 );
+  const vec4 m = vec4( 4194287, 4194277, 4194191, 4194167 );
+
+  vec4 beta  = floor( _RandSeed / q );
+
+  vec4 p = a * ( _RandSeed - beta * q ) - beta * r;
+
+  _RandSeed = p + ( sign( -p ) + vec4( 1 ) ) * vec4( 0.5 ) * m;
+
+  return fract( dot( _RandSeed / m, vec4( +1, -1, +1, -1 ) ) );
 }
 
 //------------------------------------------------------------------------------
@@ -90,12 +119,19 @@ float Fresnel( in vec3 Vec, in vec3 Nor, in float IOR )
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【外部変数】
 
+writeonly uniform image2D _Imager;
+
+layout( rgba32f ) uniform image2D _Accumr;
+
+layout( std430 ) buffer TAccumN
+{
+  int _AccumN;
+};
+
 layout( std430 ) buffer TBuffer
 {
   mat4 _Matrix;
 };
-
-writeonly uniform image2D _Imager;
 
 uniform sampler2D _Textur;
 
@@ -120,11 +156,13 @@ struct THit
   vec4  Nor;
 };
 
-//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TRays
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【内部変数】
 
-const int _RecN = 6;
+const int _RecL = 6;
 
-TRay _Rays[ _RecN ];
+//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% _Rays
+
+TRay _Rays[ _RecL ];
 int  _RaysN;
 
 //------------------------------------------------------------------------------
@@ -133,10 +171,12 @@ void InitRays()
 {
   const TRay R = TRay( 0, vec4( 0 ), vec4( 0 ), vec3( 0 ) );
 
-  for( int I = 0; I < _RecN; I++ ) _Rays[ I ] = R;
+  for( int I = 0; I < _RecL; I++ ) _Rays[ I ] = R;
 
   _RaysN = 0;
 }
+
+//------------------------------------------------------------------------------
 
 void PushRay( in TRay Ray )
 {
@@ -144,6 +184,8 @@ void PushRay( in TRay Ray )
 
   _RaysN++;
 }
+
+//------------------------------------------------------------------------------
 
 TRay PopRay()
 {
@@ -227,17 +269,23 @@ void MatWater( in TRay Ray, in THit Hit )
 
   float F = Fresnel( Ray.Vec.xyz, Nor.xyz, IOR );
 
-  R.Vec = vec4( reflect( Ray.Vec.xyz, Nor.xyz ), 0 );
-  R.Pos = Hit.Pos + _EmitShift * Nor;
-  R.Col = Ray.Col * F;
+  if( Random() < F )
+  {
 
-  PushRay( R );
+    R.Vec = vec4( reflect( Ray.Vec.xyz, Nor.xyz ), 0 );
+    R.Pos = Hit.Pos + _EmitShift * Nor;
+    R.Col = Ray.Col;
 
-  R.Vec = vec4( refract( Ray.Vec.xyz, Nor.xyz, 1 / IOR ), 0 );
-  R.Pos = Hit.Pos - _EmitShift * Nor;
-  R.Col = Ray.Col * ( 1 - F );
+    PushRay( R );
+  }
+  else
+  {
+    R.Vec = vec4( refract( Ray.Vec.xyz, Nor.xyz, 1 / IOR ), 0 );
+    R.Pos = Hit.Pos - _EmitShift * Nor;
+    R.Col = Ray.Col;
 
-  PushRay( R );
+    PushRay( R );
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -256,8 +304,22 @@ void MatMirro( in TRay Ray, in THit Hit )
 
 //##############################################################################
 
+void InitRandom()
+{
+  _RandSeed.x = Hash( _WorkID.x );
+  _RandSeed.y = Hash( _WorkID.y );
+  _RandSeed.z = Hash( _AccumN + _WorkID.x );
+  _RandSeed.w = Hash( _AccumN + _WorkID.y );
+
+  for( int I = 0; I < 4; I++ ) Random();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 void main()
 {
+  InitRandom();
+
   const vec4 EyePos = vec4( 0, 0, 3, 1 );
 
   vec4 ScrPos;
@@ -278,17 +340,13 @@ void main()
 
   PushRay( PriRay );
 
-  THit Hit;
-  Hit.Pos = vec4( 0 );
-  Hit.Nor = vec4( 0 );
-
   while( _RaysN > 0 )
   {
     TRay Ray = PopRay();
 
-    if( Ray.Lev < _RecN )
+    if( Ray.Lev < _RecL )
     {
-      Hit.t = 10000;
+      THit Hit = THit( 10000, vec4( 0 ), vec4( 0 ) );
 
       int Mat = 0;
 
@@ -304,11 +362,17 @@ void main()
     }
   }
 
-  C = ToneMap( C, 100 );
+  vec3 A = imageLoad( _Accumr, _WorkID.xy ).rgb;
 
-  C = GammaCorrect( C, 2.2 );
+  A += ( C - A ) / ( _AccumN + 1 );
 
-  imageStore( _Imager, _WorkID.xy, vec4( C, 1 ) );
+  imageStore( _Accumr, _WorkID.xy, vec4( A, 1 ) );
+
+  vec3 P = ToneMap( A, 100 );
+
+  P = GammaCorrect( P, 2.2 );
+
+  imageStore( _Imager, _WorkID.xy, vec4( P, 1 ) );
 }
 
 //############################################################################## ■
