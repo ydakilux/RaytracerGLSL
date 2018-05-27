@@ -389,6 +389,8 @@ void main()
   P = GammaCorrect( P, 2.2 );
 
   imageStore( _Imager, _WorkID.xy, vec4( P, 1 ) );
+
+  barrier();
 }
 
 //############################################################################## ■
