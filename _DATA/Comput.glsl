@@ -42,29 +42,56 @@ float length2( in vec3 V )
 
 //------------------------------------------------------------------------------
 
-float Hash( in float x )
+uint _SeedRandLCG32;
+
+void InitRandLCG32( uint Seed )
 {
-  return fract( sin( x ) * 43758.5453123 );
+  _SeedRandLCG32 = Seed;
+}
+
+void RandLCG32( out uint Rand )
+{
+  const uint A = 1664525;
+  const uint C = 1013904223;
+
+  _SeedRandLCG32 = A * _SeedRandLCG32 + C;
+
+  Rand = _SeedRandLCG32;
 }
 
 //------------------------------------------------------------------------------
 
-vec4 _RandSeed;
+uvec4 _SeedRandXOR128;
 
-float Random()
+void InitRandXOR128()
 {
-  const vec4 q = vec4(    1225,    1585,    2457,    2098 );
-  const vec4 r = vec4(    1112,     367,      92,     265 );
-  const vec4 a = vec4(    3423,    2646,    1707,    1999 );
-  const vec4 m = vec4( 4194287, 4194277, 4194191, 4194167 );
+  RandLCG32( _SeedRandXOR128.x );
+  RandLCG32( _SeedRandXOR128.y );
+  RandLCG32( _SeedRandXOR128.z );
+  RandLCG32( _SeedRandXOR128.w );
+}
 
-  vec4 beta  = floor( _RandSeed / q );
+void RandXOR128( out uint Rand )
+{
+  uint T = _SeedRandXOR128.x ^ ( _SeedRandXOR128.x << 11 );
 
-  vec4 p = a * ( _RandSeed - beta * q ) - beta * r;
+  _SeedRandXOR128.x = _SeedRandXOR128.y;
+  _SeedRandXOR128.y = _SeedRandXOR128.z;
+  _SeedRandXOR128.z = _SeedRandXOR128.w;
 
-  _RandSeed = p + ( sign( -p ) + vec4( 1 ) ) * vec4( 0.5 ) * m;
+  _SeedRandXOR128.w = ( _SeedRandXOR128.w ^ ( _SeedRandXOR128.w >> 19 ) )
+                    ^ (                 T ^ (                 T >>  8 ) );
 
-  return fract( dot( _RandSeed / m, vec4( +1, -1, +1, -1 ) ) );
+  Rand = _SeedRandXOR128.w;
+}
+
+float RandXOR128()
+{
+  uint Result;
+
+  RandXOR128( Result );
+
+  return float( Result ) / 4294967296.0;
 }
 
 //------------------------------------------------------------------------------
@@ -269,7 +296,7 @@ void MatWater( in TRay Ray, in THit Hit )
 
   float F = Fresnel( Ray.Vec.xyz, Nor.xyz, IOR );
 
-  if( Random() < F )
+  if( RandXOR128() < F )
   {
 
     R.Vec = vec4( reflect( Ray.Vec.xyz, Nor.xyz ), 0 );
@@ -304,21 +331,10 @@ void MatMirro( in TRay Ray, in THit Hit )
 
 //##############################################################################
 
-void InitRandom()
-{
-  _RandSeed.x = Hash( _WorkID.x );
-  _RandSeed.y = Hash( _WorkID.y );
-  _RandSeed.z = Hash( _AccumN + _WorkID.x );
-  _RandSeed.w = Hash( _AccumN + _WorkID.y );
-
-  for( int I = 0; I < 4; I++ ) Random();
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
 void main()
 {
-  InitRandom();
+  InitRandLCG32( ( _AccumN * _WorksN.y + _WorkID.y ) * _WorksN.x + _WorkID.x );
+  InitRandXOR128();
 
   const vec4 EyePos = vec4( 0, 0, 3, 1 );
 
