@@ -96,6 +96,21 @@ float RandXOR128()
 
 //------------------------------------------------------------------------------
 
+vec2 RandCirc()
+{
+  vec2 Result;
+
+  float T = Pi2 * RandXOR128();
+  float R = sqrt( RandXOR128() );
+
+  Result.x = R * cos( T );
+  Result.y = R * sin( T );
+
+  return Result;
+}
+
+//------------------------------------------------------------------------------
+
 vec2 VecToSky( in vec3 Vec )
 {
   vec2 Result;
@@ -366,7 +381,9 @@ void main()
   InitRandLCG32( ( _AccumN * _WorksN.y + _WorkID.y ) * _WorksN.x + _WorkID.x );
   InitRandXOR128();
 
-  const vec4 EyePos = vec4( 0, 0, 3, 1 );
+  vec4 EyePos = vec4( 0, 0, 3, 1 );
+
+  EyePos.xy = EyePos.x + 0.1 * RandCirc();
 
   vec4 ScrPos;
   ScrPos.x =       4 * ( _WorkID.x + 0.5 ) / _WorksN.x - 2;
@@ -397,7 +414,7 @@ void main()
       int Mat = 0;
 
       if ( ObjSpher( Ray, Hit ) ) { Mat = 1; }
-      if ( ObjPlane( Ray, Hit ) ) { Mat = 3; }
+      if ( ObjPlane( Ray, Hit ) ) { Mat = 2; }
 
       switch( Mat )
       {
