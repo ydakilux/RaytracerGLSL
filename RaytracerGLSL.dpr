@@ -83,7 +83,11 @@ uses
   LUX.Color.Grid.D1.Preset in '_LIBRARY\LUXOPHIA\LUX\Color\Grid\D1\_FMX\LUX.Color.Grid.D1.Preset.pas',
   LUX.Color.Grid.D2.Preset in '_LIBRARY\LUXOPHIA\LUX\Color\Grid\D2\_FMX\LUX.Color.Grid.D2.Preset.pas',
   LUX.Color.Format.HDR in '_LIBRARY\LUXOPHIA\LUX\Color\Format\LUX.Color.Format.HDR.pas',
-  LUX.FMX in '_LIBRARY\LUXOPHIA\LUX\FMX\LUX.FMX.pas';
+  LUX.FMX in '_LIBRARY\LUXOPHIA\LUX\FMX\LUX.FMX.pas',
+  LUX.Random.Xorshift in '_LIBRARY\LUXOPHIA\LUX\Random\LUX.Random.Xorshift.pas',
+  LUX.Random.Xoshiro in '_LIBRARY\LUXOPHIA\LUX\Random\LUX.Random.Xoshiro.pas',
+  LUX.Random.LCG in '_LIBRARY\LUXOPHIA\LUX\Random\LUX.Random.LCG.pas',
+  LUX.Random in '_LIBRARY\LUXOPHIA\LUX\Random\LUX.Random.pas';
 
 {$R *.res}
 

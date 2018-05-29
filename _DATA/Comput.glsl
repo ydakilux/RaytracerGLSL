@@ -1,6 +1,6 @@
 ﻿#version 430
 
-#extension GL_ARB_compute_variable_group_size : enable
+//#extension GL_ARB_compute_variable_group_size : enable
 
 //layout( local_size_variable ) in;
   layout( local_size_x = 10,
@@ -42,34 +42,7 @@ float length2( in vec3 V )
 
 //------------------------------------------------------------------------------
 
-uint _SeedRandLCG32;
-
-void InitRandLCG32( uint Seed )
-{
-  _SeedRandLCG32 = Seed;
-}
-
-void RandLCG32( out uint Rand )
-{
-  const uint A = 1664525;
-  const uint C = 1013904223;
-
-  _SeedRandLCG32 = A * _SeedRandLCG32 + C;
-
-  Rand = _SeedRandLCG32;
-}
-
-//------------------------------------------------------------------------------
-
 uvec4 _SeedRandXOR128;
-
-void InitRandXOR128()
-{
-  RandLCG32( _SeedRandXOR128.x );
-  RandLCG32( _SeedRandXOR128.y );
-  RandLCG32( _SeedRandXOR128.z );
-  RandLCG32( _SeedRandXOR128.w );
-}
 
 void RandXOR128( out uint Rand )
 {
@@ -160,6 +133,8 @@ float Fresnel( in vec3 Vec, in vec3 Nor, in float IOR )
 }
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【外部変数】
+
+layout( rgba32ui ) uniform uimage2D _Seeder;
 
 writeonly uniform image2D _Imager;
 
@@ -382,8 +357,7 @@ void MatDiffu( inout TRay Ray, in THit Hit )
 
 void main()
 {
-  InitRandLCG32( ( _AccumN * _WorksN.y + _WorkID.y ) * _WorksN.x + _WorkID.x );
-  InitRandXOR128();
+  _SeedRandXOR128 = imageLoad( _Seeder, _WorkID.xy );
 
   vec4 EyePos = vec4( 0, 0, 3, 1 );
 
@@ -455,6 +429,8 @@ void main()
   P = GammaCorrect( P, 2.2 );
 
   imageStore( _Imager, _WorkID.xy, vec4( P, 1 ) );
+
+  imageStore( _Seeder, _WorkID.xy, _SeedRandXOR128 );
 
   barrier();
 }

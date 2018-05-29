@@ -5,9 +5,9 @@ interface //####################################################################
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs,
-  FMX.Controls.Presentation, FMX.StdCtrls, FMX.Objects, FMX.TabControl, FMX.ScrollBox, FMX.Memo,
+  FMX.Controls.Presentation, FMX.StdCtrls, FMX.Objects, FMX.TabControl, FMX.ScrollBox, FMX.Memo, LUX.FMX.Controls,
   Winapi.OpenGL, Winapi.OpenGLext,
-  LUX, LUX.D1, LUX.D2, LUX.D3, LUX.M4, LUX.FMX.Controls,
+  LUX, LUX.D1, LUX.D2, LUX.D3, LUX.D4, LUX.M4,
   LUX.GPU.OpenGL,
   LUX.GPU.OpenGL.Atom.Buffer.StoBuf,
   LUX.GPU.OpenGL.Atom.Buffer.PixBuf.D1,
@@ -43,6 +43,7 @@ type
     _ImageX :Integer;
     _ImageY :Integer;
     _Comput :TGLComput;
+    _Seeder :TGLCelIma2D_TInt32u4D;
     _Imager :TGLCelIma2D_TAlphaColorF;
     _Accumr :TGLCelIma2D_TAlphaColorF;
     _AccumN :TGLStoBuf<Integer>;
@@ -50,6 +51,7 @@ type
     _Textur :TGLCelTex2D_TAlphaColorF;
     ///// メソッド
     procedure InitComput;
+    procedure InitSeeder;
   end;
 
 var
@@ -57,7 +59,8 @@ var
 
 implementation //############################################################### ■
 
-uses System.Math;
+uses System.Math,
+     LUX.Random.Xoshiro;
 
 {$R *.fmx}
 
@@ -81,16 +84,40 @@ begin
 
      with Memo1.Lines do
      begin
-          Assign( _Comput.Engine.Errors );
+          Assign( _Comput.ShaderC.Errors );
 
           if Count > 0 then TabControl1.TabIndex := 1;
      end;
 
+     _Comput.Imagers.Add( '_Seeder', _Seeder );
      _Comput.Imagers.Add( '_Imager', _Imager );
      _Comput.Imagers.Add( '_Accumr', _Accumr );
      _Comput.Buffers.Add( 'TAccumN', _AccumN );
      _Comput.Buffers.Add( 'TBuffer', _Buffer );
      _Comput.Texturs.Add( '_Textur', _Textur );
+end;
+
+//------------------------------------------------------------------------------
+
+procedure TForm1.InitSeeder;
+var
+   R :IRandom32XOS128;
+   D :TGLCelPixIter2D<TInt32u4D>;
+   X, Y :Integer;
+begin
+     R := TRandom32XOS128ss.Create;
+
+     D := _Seeder.Grid.Map( GL_WRITE_ONLY );
+
+     for Y := 0 to _ImageY-1 do
+     for X := 0 to _ImageX-1 do
+     begin
+          D.Cells[ X, Y ] := R.State;
+
+          R.NextState64;
+     end;
+
+     D.DisposeOf;
 end;
 
 //&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
@@ -103,6 +130,7 @@ begin
      _ImageY := 600;
 
      _Comput := TGLComput               .Create;
+     _Seeder := TGLCelIma2D_TInt32u4D   .Create;
      _Imager := TGLCelIma2D_TAlphaColorF.Create;
      _Accumr := TGLCelIma2D_TAlphaColorF.Create;
      _AccumN := TGLStoBuf<Integer>      .Create( GL_DYNAMIC_DRAW );
@@ -110,6 +138,11 @@ begin
      _Textur := TGLCelTex2D_TAlphaColorF.Create;
 
      InitComput;
+
+     _Seeder.Grid.CellsX := _ImageX;
+     _Seeder.Grid.CellsY := _ImageY;
+
+     InitSeeder;
 
      _Imager.Grid.CellsX := _ImageX;
      _Imager.Grid.CellsY := _ImageY;
@@ -125,6 +158,7 @@ end;
 procedure TForm1.FormDestroy(Sender: TObject);
 begin
      _Comput.DisposeOf;
+     _Seeder.DisposeOf;
      _Imager.DisposeOf;
      _Accumr.DisposeOf;
      _AccumN.DisposeOf;
