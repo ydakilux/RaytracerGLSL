@@ -239,7 +239,7 @@ TRay PopRay()
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【物体】
 
-bool ObjPlane( in TRay Ray, inout THit Hit )
+uint ObjPlane( in TRay Ray, inout THit Hit )
 {
   if( Ray.Vec.y < 0 )
   {
@@ -251,16 +251,20 @@ bool ObjPlane( in TRay Ray, inout THit Hit )
       Hit.Pos = Ray.Pos + t * Ray.Vec;
       Hit.Nor = vec4( 0, 1, 0, 0 );
 
-      return true;
+      if ( ( mod( floor( Hit.Pos.x ), 2 ) == 0 )
+        ^^ ( mod( floor( Hit.Pos.z ), 2 ) == 0 ) )
+           return 1;
+      else return 2;
+
     }
   }
 
-  return false;
+  return 0;
 }
 
 //------------------------------------------------------------------------------
 
-bool ObjSpher( in TRay Ray, inout THit Hit )
+uint ObjSpher( in TRay Ray, inout THit Hit )
 {
   float B = dot( Ray.Pos.xyz, Ray.Vec.xyz );
   float C = length2( Ray.Pos.xyz ) - 1;
@@ -277,11 +281,11 @@ bool ObjSpher( in TRay Ray, inout THit Hit )
       Hit.Pos = Ray.Pos + t * Ray.Vec;
       Hit.Nor = Hit.Pos;
 
-      return true;
+      return 1;
     }
   }
 
-  return false;
+  return 0;
 }
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【材質】
@@ -413,8 +417,20 @@ void main()
 
       int Mat = 0;
 
-      if ( ObjSpher( Ray, Hit ) ) { Mat = 1; }
-      if ( ObjPlane( Ray, Hit ) ) { Mat = 2; }
+      ///// 物体
+
+      switch( ObjSpher( Ray, Hit ) )
+      {
+        case 1: Mat = 1; break;
+      }
+
+      switch( ObjPlane( Ray, Hit ) )
+      {
+        case 1: Mat = 1; break;
+        case 2: Mat = 2; break;
+      }
+
+      ///// 材質
 
       switch( Mat )
       {
