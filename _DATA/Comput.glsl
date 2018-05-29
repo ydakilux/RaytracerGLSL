@@ -227,7 +227,7 @@ bool ObjPlane( in TRay Ray, inout THit Hit )
 {
   if( Ray.Vec.y < 0 )
   {
-    float t = ( Ray.Pos.y - -2 ) / -Ray.Vec.y;
+    float t = ( Ray.Pos.y - -1.001 ) / -Ray.Vec.y;
 
     if( ( 0 < t ) && ( t < Hit.t ) )
     {
@@ -296,23 +296,17 @@ void MatWater( in TRay Ray, in THit Hit )
 
   float F = Fresnel( Ray.Vec.xyz, Nor.xyz, IOR );
 
-  if( RandXOR128() < F )
-  {
+  R.Vec = vec4( reflect( Ray.Vec.xyz, Nor.xyz ), 0 );
+  R.Pos = Hit.Pos + _EmitShift * Nor;
+  R.Col = Ray.Col * F;
 
-    R.Vec = vec4( reflect( Ray.Vec.xyz, Nor.xyz ), 0 );
-    R.Pos = Hit.Pos + _EmitShift * Nor;
-    R.Col = Ray.Col;
+  PushRay( R );
 
-    PushRay( R );
-  }
-  else
-  {
-    R.Vec = vec4( refract( Ray.Vec.xyz, Nor.xyz, 1 / IOR ), 0 );
-    R.Pos = Hit.Pos - _EmitShift * Nor;
-    R.Col = Ray.Col;
+  R.Vec = vec4( refract( Ray.Vec.xyz, Nor.xyz, 1 / IOR ), 0 );
+  R.Pos = Hit.Pos - _EmitShift * Nor;
+  R.Col = Ray.Col * ( 1 - F );
 
-    PushRay( R );
-  }
+  PushRay( R );
 }
 
 //------------------------------------------------------------------------------
@@ -323,6 +317,28 @@ void MatMirro( in TRay Ray, in THit Hit )
 
   R.Lev = Ray.Lev + 1;
   R.Vec = vec4( reflect( Ray.Vec.xyz, Hit.Nor.xyz ), 0 );
+  R.Pos = Hit.Pos + _EmitShift * Hit.Nor;
+  R.Col = Ray.Col * vec3( 1, 1, 1 );
+
+  PushRay( R );
+}
+
+//------------------------------------------------------------------------------
+
+void MatDiffu( in TRay Ray, in THit Hit )
+{
+  TRay R;
+
+  R.Lev = Ray.Lev + 1;
+
+  R.Vec.y = RandXOR128();
+
+  float d = sqrt( 1 - Pow2( R.Vec.y ) );
+  float v = RandXOR128();
+
+  R.Vec.x = d * cos( Pi2 * v );
+  R.Vec.z = d * sin( Pi2 * v );
+
   R.Pos = Hit.Pos + _EmitShift * Hit.Nor;
   R.Col = Ray.Col * vec3( 1, 1, 1 );
 
@@ -367,13 +383,14 @@ void main()
       int Mat = 0;
 
       if ( ObjSpher( Ray, Hit ) ) { Mat = 1; }
-      if ( ObjPlane( Ray, Hit ) ) { Mat = 2; }
+      if ( ObjPlane( Ray, Hit ) ) { Mat = 3; }
 
       switch( Mat )
       {
         case 0: C += Ray.Col * texture( _Textur, VecToSky( Ray.Vec.xyz ) ).rgb; break;
         case 1: MatWater( Ray, Hit ); break;
         case 2: MatMirro( Ray, Hit ); break;
+        case 3: MatDiffu( Ray, Hit ); break;
       }
     }
   }
