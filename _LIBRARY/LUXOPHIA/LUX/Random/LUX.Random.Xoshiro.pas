@@ -69,7 +69,15 @@ type //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
      //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TRandom32XOS64
 
-     TRandom32XOS64 = class( TRandom32XOS<TInt32u2D> )
+     IRandom32XOS64 = interface( IRandom32XOS<TInt32u2D> )
+     ['{8CFFB658-0F6E-43AE-BE88-1C6381CD72DB}']
+     {protected}
+     {public}
+     end;
+
+     //-------------------------------------------------------------------------
+
+     TRandom32XOS64 = class( TRandom32XOS<TInt32u2D>, IRandom32XOS64 )
      private
      protected
      public
@@ -102,7 +110,17 @@ type //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
      //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TRandom32XOS128
 
-     TRandom32XOS128 = class( TRandom32XOS<TInt32u4D> )
+     IRandom32XOS128 = interface( IRandom32XOS<TInt32u4D> )
+     ['{A67F4404-49C1-48F4-A7A8-B5068E5F931B}']
+     {protected}
+     {public}
+       ///// メソッド
+       procedure NextState64;
+     end;
+
+     //-------------------------------------------------------------------------
+
+     TRandom32XOS128 = class( TRandom32XOS<TInt32u4D>, IRandom32XOS128 )
      private
      protected
      public
@@ -136,7 +154,17 @@ type //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
      //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TRandom64XOS128
 
-     TRandom64XOS128 = class( TRandom64XOS<TInt64u2D> )
+     IRandom64XOS128 = interface( IRandom64XOS<TInt64u2D> )
+     ['{9467F5DF-D542-4AE3-8E75-872D9A961571}']
+     {protected}
+     {public}
+       ///// メソッド
+       procedure NextState64;
+     end;
+
+     //-------------------------------------------------------------------------
+
+     TRandom64XOS128 = class( TRandom64XOS<TInt64u2D>, IRandom64XOS128 )
      private
      protected
      public
@@ -171,7 +199,7 @@ type //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
      //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TRandom64XOS256
 
      IRandom64XOS256 = interface( IRandom64XOS<TInt64u4D> )
-     ['{3D863AF1-3DF8-46A2-BD16-09C34EFB8D36}']
+     ['{1813AA1B-02CA-49C3-8A1E-AAA5A62C3E5D}']
      {protected}
      {public}
        ///// メソッド
