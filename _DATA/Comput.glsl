@@ -172,6 +172,7 @@ struct TRay
   vec4 Pos;
   vec4 Vec;
   vec3 Col;
+  vec3 Emi;
 };
 
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% THit
@@ -196,7 +197,7 @@ int  _RaysN;
 
 void InitRays()
 {
-  const TRay R = TRay( 0, vec4( 0 ), vec4( 0 ), vec3( 0 ) );
+  const TRay R = TRay( 0, vec4( 0 ), vec4( 0 ), vec3( 0 ), vec3( 0 ) );
 
   for( int I = 0; I < _RecL; I++ ) _Rays[ I ] = R;
 
@@ -274,7 +275,14 @@ const float _EmitShift = 0.0001;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void MatWater( in TRay Ray, in THit Hit )
+void MatSkyer( inout TRay Ray, in THit Hit )
+{
+  Ray.Emi = texture( _Textur, VecToSky( Ray.Vec.xyz ) ).rgb;
+}
+
+//------------------------------------------------------------------------------
+
+void MatWater( inout TRay Ray, in THit Hit )
 {
   float IOR;
   vec4  Nor;
@@ -307,25 +315,29 @@ void MatWater( in TRay Ray, in THit Hit )
   R.Col = Ray.Col * ( 1 - F );
 
   PushRay( R );
+
+  Ray.Emi = vec3( 0, 0, 0 );
 }
 
 //------------------------------------------------------------------------------
 
-void MatMirro( in TRay Ray, in THit Hit )
+void MatMirro( inout TRay Ray, in THit Hit )
 {
   TRay R;
 
   R.Lev = Ray.Lev + 1;
   R.Vec = vec4( reflect( Ray.Vec.xyz, Hit.Nor.xyz ), 0 );
   R.Pos = Hit.Pos + _EmitShift * Hit.Nor;
-  R.Col = Ray.Col * vec3( 1, 1, 1 );
+  R.Col = Ray.Col;
 
   PushRay( R );
+
+  Ray.Emi = vec3( 0, 0, 0 );
 }
 
 //------------------------------------------------------------------------------
 
-void MatDiffu( in TRay Ray, in THit Hit )
+void MatDiffu( inout TRay Ray, in THit Hit )
 {
   TRay R;
 
@@ -340,9 +352,11 @@ void MatDiffu( in TRay Ray, in THit Hit )
   R.Vec.z = d * sin( Pi2 * v );
 
   R.Pos = Hit.Pos + _EmitShift * Hit.Nor;
-  R.Col = Ray.Col * vec3( 1, 1, 1 );
+  R.Col = Ray.Col;
 
   PushRay( R );
+
+  Ray.Emi = vec3( 0, 0, 0 );
 }
 
 //##############################################################################
@@ -387,11 +401,13 @@ void main()
 
       switch( Mat )
       {
-        case 0: C += Ray.Col * texture( _Textur, VecToSky( Ray.Vec.xyz ) ).rgb; break;
+        case 0: MatSkyer( Ray, Hit ); break;
         case 1: MatWater( Ray, Hit ); break;
         case 2: MatMirro( Ray, Hit ); break;
         case 3: MatDiffu( Ray, Hit ); break;
       }
+
+      C += Ray.Col * Ray.Emi;
     }
   }
 
